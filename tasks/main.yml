@@ -1,0 +1,75 @@
+---
+# tasks file for docker-app
+- name: set up the expect ansible module
+  include_tasks: "expect-module.yml"
+
+- name: determine if Docker is already installed
+  stat:
+    path: /Applications/Docker.app
+  register: docker_status
+
+- name: install docker
+  expect:
+    command: "{{ homebrew_brew_bin_path }}/brew cask install docker"
+    timeout: 900
+    responses:
+      (?i)password: "{{ macos_docker_app_sudo_pass }}"
+  register: install_docker_result
+  when: "not docker_status.stat.exists"
+  changed_when:
+    - "install_docker_result.stdout is defined"
+    - "'is already installed' not in install_docker_result.stdout"
+  notify: "launch the Docker app"
+  no_log: True
+  become: True
+  become_user: "{{ ansible_user }}"
+  environment:
+    PATH: "{{ homebrew_brew_bin_path }}:{{ lookup('env','PATH') }}"
+
+- name: wake up the display for 5 minutes to allow Docker to start
+  shell: caffeinate -u -t 300 &
+  changed_when: False
+
+  # https://github.com/docker/for-mac/issues/882#issuecomment-324307823
+- name: open Docker for user authorization
+  command: /Applications/Docker.app/Contents/MacOS/Docker --quit-after-install --unattended
+  changed_when: False
+  tags:
+    - skip_ansible_lint
+  become: True
+
+- name: launch the Docker app so that it creates the preferences file
+  command: open /Applications/Docker.app
+  when: install_docker_result.changed
+  become: True
+  become_user: "{{ ansible_user }}"
+  tags:
+  - skip_ansible_lint
+
+- name: read Docker preferences
+  command: cat '/Users/{{ ansible_user }}/Library/Group Containers/group.com.docker/settings.json'
+  register: docker_preferences_file
+  changed_when: False
+
+- name: read installed docker preferences
+  set_fact: actual_docker_prefs="{{ docker_preferences_file.stdout | from_json }}"
+
+- name: update Docker preferences
+  copy:
+    content: "{{ actual_docker_prefs | combine(docker_prefs) | to_nice_json }}"
+    dest: '/Users/{{ ansible_user }}/Library/Group Containers/group.com.docker/settings.json'
+  when: 'not docker_prefs.viewitems() <= actual_docker_prefs.viewitems()'
+
+- name: find docker command line tools that need to be linked in /usr/local/bin
+  find:
+    paths:
+      - /Applications/Docker.app/Contents/Resources/bin
+    patterns: "*"
+  register: found_docker_command_line_tools
+
+- name: create symbolic links to docker command line tools
+  file:
+    src: "{{ item.path }}"
+    dest: "/usr/local/bin/{{ item.path | basename }}"
+    state: link
+  with_items: "{{ found_docker_command_line_tools.files }}"

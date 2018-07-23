@@ -1,0 +1,3 @@
+---
+# defaults file for docker-app
+docker_prefs: { 'memoryMiB' : 8192, 'cpus' : 2, 'useCredentialHelper' : false  }

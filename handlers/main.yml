@@ -1,0 +1,5 @@
+---
+- name: launch the Docker app
+  command: open /Applications/Docker.app
+  become: True
+  become_user: "{{ ansible_user }}"

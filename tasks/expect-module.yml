@@ -1,0 +1,10 @@
+---
+- name: check if pexpect is installed
+  local_action: command python -c "import pexpect"
+  register: pexpect_check_result
+  ignore_errors: True
+  changed_when: False
+
+- name: install pexpect locally to support the Ansible expect module
+  local_action: command easy_install pexpect
+  when: pexpect_check_result.failed
