@@ -44,7 +44,7 @@
   become: True
   become_user: "{{ ansible_user }}"
   tags:
-  - skip_ansible_lint
+    - skip_ansible_lint
 
 - name: read Docker preferences
   command: cat '/Users/{{ ansible_user }}/Library/Group Containers/group.com.docker/settings.json'
@@ -56,9 +56,9 @@
 
 - name: update Docker preferences
   copy:
-    content: "{{ actual_docker_prefs | combine(docker_prefs) | to_nice_json }}"
+    content: "{{ actual_docker_prefs | combine(desired_docker_prefs) | to_nice_json }}"
     dest: '/Users/{{ ansible_user }}/Library/Group Containers/group.com.docker/settings.json'
-  when: 'not docker_prefs.viewitems() <= actual_docker_prefs.viewitems()'
+  when: 'not desired_docker_prefs.viewitems() <= actual_docker_prefs.viewitems()'
 
 - name: find docker command line tools that need to be linked in /usr/local/bin
   find:
