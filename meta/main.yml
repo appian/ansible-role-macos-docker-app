@@ -3,7 +3,7 @@ dependencies:
   - kadaan.homebrew
 
 galaxy_info:
-  author: Brian Kaplan (github ':' Brian-Kaplan), Lyndsey Ferguson (github ':' lyndsey-ferguson)
+  author: Brian Kaplan & Lyndsey Ferguson
   description: A role that installs Docker
   company: Appian Corporation, Inc.
 
